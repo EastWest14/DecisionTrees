@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn import tree
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
+import matplotlib.pyplot as plt
 
 
 df = pd.read_csv('GermanCredit.csv')
@@ -25,3 +26,19 @@ clf = DecisionTreeClassifier()
 clf = clf.fit(X_train, y_train)
 
 print(tree.export_graphviz(clf, out_file=None))
+
+colormap = {0: 'red', 1: 'green'}
+
+# Create the scatter plot
+plt.scatter(df['Duration'], df['Property.RealEstate'], c=[colormap[label] for label in y])
+
+# Set labels and title
+plt.xlabel('Duration')
+plt.ylabel('Property.RealEstate')
+plt.title('Data Visualization')
+
+
+plt.legend()
+
+# Show the plot
+plt.show()
