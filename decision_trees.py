@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import graphviz
 from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
+from pdpbox import pdp
 
 
 FILE_NAME = "GermanCredit.csv"
@@ -159,6 +160,7 @@ def train_random_forest(debug_output: bool = False) -> float:
         print(report)
 
     auc_score = roc_auc_score(y_test, y_pred)
+
     return auc_score
 
 
@@ -192,19 +194,3 @@ print_separator()
 
 auc_score_random_forest = train_random_forest()
 print(f"AUC Score Random Forest: {auc_score_random_forest}")
-
-# colormap = {0: 'red', 1: 'green'}
-
-# # Create the scatter plot
-# plt.scatter(df['Duration'], df['Property.RealEstate'], c=[colormap[label] for label in y])
-
-# # Set labels and title
-# plt.xlabel('Duration')
-# plt.ylabel('Property.RealEstate')
-# plt.title('Data Visualization')
-
-
-# plt.legend()
-
-# Show the plot
-# plt.show()
