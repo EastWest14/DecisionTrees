@@ -1,17 +1,16 @@
 from typing import List
 
+import graphviz
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn import tree
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
-import matplotlib.pyplot as plt
-import graphviz
-from sklearn.metrics import roc_auc_score
+from sklearn.base import ClassifierMixin
 from sklearn.ensemble import RandomForestClassifier
-from pdpbox import pdp
-
+from sklearn.inspection import PartialDependenceDisplay
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.tree import DecisionTreeClassifier
 
 FILE_NAME = "GermanCredit.csv"
 LABEL_NAME = "Class"
@@ -44,6 +43,21 @@ RANDOM_FOREST_PARAM_GRID = {
 NUM_CROSS_VALIDATION_FOLDS_RF = 5
 
 
+# PDP Plotting Params:
+PDP_PLOTTING_PARAMS = {
+    "subsample": 50,
+    "n_jobs": 2,
+    "grid_resolution": 20,
+    "random_state": 0,
+}
+# Pick no more than 5.
+FEATURES_TO_PLOT = [
+    "Duration",
+    "Amount",
+    "InstallmentRatePercentage",
+    "Job.UnskilledResident",
+]
+
 DEBUG_OUTPUT = False
 
 
@@ -71,7 +85,13 @@ def print_separator():
     print("")
 
 
-def train_decision_tree(debug_output: bool = False) -> float:
+def train_decision_tree(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    debug_output: bool = False,
+) -> float:
     """Trains decision tree to classify the data into 'Good' and 'Bad' credit classes.
     Outputs area under curve (AUC) on the test data"""
     clf = DecisionTreeClassifier()
@@ -117,7 +137,13 @@ def train_decision_tree(debug_output: bool = False) -> float:
     return auc_score_decision_tree
 
 
-def train_logistic_regression(debug_output: bool = False) -> float:
+def train_logistic_regression(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    debug_output: bool = False,
+) -> float:
     clf = LogisticRegression(max_iter=MAX_NUM_ITERATIONS_LR)
     clf.fit(X_train, y_train)
 
@@ -130,7 +156,34 @@ def train_logistic_regression(debug_output: bool = False) -> float:
     return auc_score
 
 
-def train_random_forest(debug_output: bool = False) -> float:
+def plot_pdp_on_features(clf: ClassifierMixin, X_train: pd.DataFrame):
+    features_info = {
+        "features": FEATURES_TO_PLOT,
+        "kind": "average",
+    }
+    fig, ax = plt.subplots(ncols=1, nrows=len(FEATURES_TO_PLOT))
+    fig.subplots_adjust(hspace=1.0)
+    display = PartialDependenceDisplay.from_estimator(
+        clf,
+        X_train,
+        **features_info,
+        ax=ax,
+        **PDP_PLOTTING_PARAMS,
+    )
+    _ = display.figure_.suptitle(
+        "Partial Dependency Plot\n",
+        fontsize=6,
+    )
+    plt.show()
+
+
+def train_random_forest(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    debug_output: bool = False,
+) -> float:
     clf = RandomForestClassifier()
     grid_search = GridSearchCV(
         estimator=clf,
@@ -160,7 +213,7 @@ def train_random_forest(debug_output: bool = False) -> float:
         print(report)
 
     auc_score = roc_auc_score(y_test, y_pred)
-
+    plot_pdp_on_features(clf, X_train)
     return auc_score
 
 
@@ -181,16 +234,20 @@ if DEBUG_OUTPUT:
     print(f"Number of test records: {X_test.shape[0]}")
 
 print_separator()
-
-decision_tree_auc_score = train_decision_tree(debug_output=DEBUG_OUTPUT)
+decision_tree_auc_score = train_decision_tree(
+    X_train, y_train, X_test, y_test, debug_output=DEBUG_OUTPUT
+)
 print(f"AUC Score Decision Tree: {decision_tree_auc_score}")
 
 print_separator()
 
-auc_score_logistic_regression = train_logistic_regression()
+auc_score_logistic_regression = train_logistic_regression(
+    X_train, y_train, X_test, y_test, debug_output=DEBUG_OUTPUT
+)
 print(f"AUC Score Logistic Regression: {auc_score_logistic_regression}")
 
 print_separator()
-
-auc_score_random_forest = train_random_forest()
+auc_score_random_forest = train_random_forest(
+    X_train, y_train, X_test, y_test, debug_output=DEBUG_OUTPUT
+)
 print(f"AUC Score Random Forest: {auc_score_random_forest}")
